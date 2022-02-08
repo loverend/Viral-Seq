@@ -31,7 +31,7 @@ option_list <- list(
   make_option(c("-f", "--fastq"), action="store", type="character", default = '/well/jknight/Sepsis/Gene_Expression/RNASeq/MappedBamFiles/gains8033270/gains8033270.Unmapped.out.mate1 /well/jknight/Sepsis/Gene_Expression/RNASeq/MappedBamFiles/gains8033270/gains8033270.Unmapped.out.mate2', help="Path to input FASTQ file [default]"),
   make_option(c("-r", "--runname"), action="store", type="character", default="ViRNA_Seq_Unique", help="Run Name [default]"),
   make_option(c("-v", "--viralannotation"), action="store", type="character", default="/well/immune-rep/shared/CODE/VIRAL_SEQ_Reference/NCBI_Viral_Seq_Reference.txt", help="Path to VirusSite annotation file [default]"),
-  make_option(c("-a", "--auxfunctions"), action="store", type="character", default="/well/immune-rep/users/kvi236/VIRUS/Viral-Track/AuxillaryFunctions/auxillary_viral_track_functions.R", help="Path to ViralTrack Auxillary Functions [default]"),
+  make_option(c("-a", "--auxfunctions"), action="store", type="character", default="/well/immune-rep/shared/CODE/Viral-Seq/AuxillaryFunctions/auxillary_viral_track_functions.R", help="Path to ViralTrack Auxillary Functions [default]"),
   make_option(c("-g", "--gtffile"), action="store", type="character", default="FALSE", help="Path to GTF file. If no GTF file exists use FALSE and it will be created [default]"), 
   make_option(c("-p", "--pairedend"), action="store", type="logical", default=TRUE, help="Paired End RNAseq T/F: [default]") 
 )
@@ -197,6 +197,7 @@ cat(paste0("--runname: ", opt$runname, "\n"), file=log, append = TRUE)
 cat(paste0("--viralannotation: ", opt$viralannotation, "\n"), file=log, append = TRUE)
 cat(paste0("--auxfunctions: ", opt$auxfunctions, "\n"), file=log, append = TRUE)
 cat(paste0("--gtffile: ", opt$gtffile, "\n"), file=log, append = TRUE)
+cat(paste0("--paired: ", opt$pairedend, "\n"), file=log, append = TRUE)
 cat("----------------------------------------------\n", file=log, append=TRUE)
 
 ##-------------------------------------------------------
@@ -365,6 +366,39 @@ if(length(list.files(dir))==0){
   cat("\t ----------------------------------------------\n", file=log, append=TRUE)
 }  
 
+### If you want to verify using the paired version of Genomic Ranges
+### Not easy to calculate other metrics hence why we treat as single down the line!
+# mated_idx <- which(mcols(L)$mate_status == "mated")
+# https://broadinstitute.github.io/picard/explain-flags.html
+# https://bioconductor.org/packages/devel/bioc/manuals/GenomicAlignments/man/GenomicAlignments.pdf
+# L <- readGAlignmentsList(paste(temp_output_dir, "/Viral_BAM_files/", "NC_001716.2", ".bam", sep=""),param=ScanBamParam(what=scanBamWhat()))
+# Using PairedEnd list from genomic ranges to validate correct SAM flags (unique and paired correctly!)#NC_001405.1
+#unique_count <- 0
+#for(i in 1:length(L)){
+	#unique <- L[[i]]@elementMetadata$mapq
+	#print(unique)
+	#if (255 %in% unique){
+	#	unique_count=unique_count+1
+	#}
+	#}
+#unique_count <- 0
+#for(i in 1:length(L)){
+	#unique <- L[[i]]@elementMetadata$flag
+	#print(unique)
+	#if ( unique %in% c(163, 99, 147, 83)){
+	#	unique_count=unique_count+1
+	#}
+	#}
+## Going to need to set argument here for whether paired end or not!
+
+if(opt$p ==TRUE){
+	paired <- 2
+} else {
+	paired <- 1
+}
+
+
+## divide by two if paired if not divide by 1!
 if(length(list.files(dir))>0){
   cat("\t ----------------------------------------------\n", file=log, append=TRUE)
   cat(paste0("\t ", length(list.files(dir)), " VIRUSES IDENFIFIED WITH MIN READS MAPPED >=", Minimal_read_mapped, ". \n"), file=log, append=TRUE)
@@ -376,7 +410,12 @@ if(length(list.files(dir))>0){
   for(i in 1:length(rownames(temp_chromosome_count))) {
     z <- rownames(temp_chromosome_count)[i]
 	BAM_file_1=readGAlignments(paste(temp_output_dir, "/Viral_BAM_files/", z, ".bam", sep=""),param=ScanBamParam(what=scanBamWhat()))
-    BAM_file_2= BAM_file_1[BAM_file_1@elementMetadata$flag ==163 | BAM_file_1@elementMetadata$flag == 99 | BAM_file_1@elementMetadata$flag == 147 | BAM_file_1@elementMetadata$flag == 83 ]
+	## Flags depend on whether single or paired 
+	if(opt$p==TRUE){
+		BAM_file_2= BAM_file_1[BAM_file_1@elementMetadata$flag ==163 | BAM_file_1@elementMetadata$flag == 99 | BAM_file_1@elementMetadata$flag == 147 | BAM_file_1@elementMetadata$flag == 83 ]
+	} else {
+		BAM_file_2= BAM_file_1[BAM_file_1@elementMetadata$flag ==0 | BAM_file_1@elementMetadata$flag == 16]
+	}
 	if(length(BAM_file_2)==0){
 		cat("\t Warning: Virus ", z, "Has no primary read assignments. Skipping QC. \n", file=log, append=TRUE)
 		if(length(rownames(temp_chromosome_count))==1){
@@ -409,6 +448,22 @@ if(length(list.files(dir))>0){
 		Covered_genome = coverage(BAM_file)[[z]]
 		Covered_genome = as.numeric(Covered_genome)
 		Spatial_distribution =sum(Covered_genome>0)/length(Covered_genome)
+		## Lets save the coverage as part of the pipeline!!
+		## This will be used later
+		## Also do plot of coverage
+		coverage_file <- data.frame(Covered_genome)
+		colnames(coverage_file) <- sample_name
+		write.table(coverage_file, paste0(temp_output_dir, "/Viral_BAM_files/", z, "_genome_coverage.txt"), sep="\t")
+		pdf(paste0(temp_output_dir, "/Viral_BAM_files/", z, "_genome_coverage.pdf"))
+		plot(as.integer(Covered_genome))
+		dev.off()
+		
+		###############
+		## Coverage per read
+		read_length <-  mean(BAM_file@elementMetadata$qwidth)
+		## Standardise for read count and length
+		length_per_read <- length(Covered_genome[Covered_genome >0])/ (read_length*(length(BAM_file_2)))
+
 		Covered_genome = rle(sign(Covered_genome))
 		Longest_contig = max(Covered_genome$lengths[Covered_genome$values>0])
 		
@@ -421,9 +476,9 @@ if(length(list.files(dir))>0){
 		Sd_read_quality = sd(Reads_quality)
 		
 		##... the number of mapped reads and unique mapped reads
-		N_unique_mapped_reads = (sum(BAM_file_2@elementMetadata$mapq==255))/2 ##Code specific to STAR aligner.... 
-		N_mapped_reads = (length(BAM_file_2))/2
-		Percent_uniquely_mapped = N_unique_mapped_reads/N_mapped_reads
+		N_unique_mapped_reads = (sum(BAM_file_2@elementMetadata$mapq==255))/paired ##Code specific to STAR aligner.... 
+		N_mapped_reads = (length(BAM_file_2))/paired
+		Percent_uniquely_mapped = (N_unique_mapped_reads/N_mapped_reads)*100
 		
 		##DUSTy score identifies low-complexity sequences, in a manner inspired by the dust implementation in BLAST
 		Mean_dust_score = NA
@@ -431,12 +486,12 @@ if(length(list.files(dir))>0){
 		if ("ShortRead"%in%installed.packages()){
 		  DUST_score = dustyScore(BAM_file@elementMetadata$seq)
 		  Mean_dust_score = mean(DUST_score)
-		  Percent_high_quality_reads =  sum(DUST_score<500)/length(DUST_score)
+		  Percent_high_quality_reads =  (sum(DUST_score<500)/length(DUST_score))*100
 		}
 	} else { 
-		N_unique_mapped_reads = (sum(BAM_file_2@elementMetadata$mapq==255))/2 ##Code specific to STAR aligner.... 
-		N_mapped_reads = (length(BAM_file_2))/2
-		Percent_uniquely_mapped = N_unique_mapped_reads/N_mapped_reads
+		N_unique_mapped_reads = (sum(BAM_file_2@elementMetadata$mapq==255))/paired ##Code specific to STAR aligner.... 
+		N_mapped_reads = (length(BAM_file_2))/paired
+		Percent_uniquely_mapped = (N_unique_mapped_reads/N_mapped_reads)*100
 		Mean_read_quality <- "NA"
 		Sd_read_quality <- "NA"
 		A = "NA" 
@@ -449,20 +504,21 @@ if(length(list.files(dir))>0){
 		Longest_contig="NA"
         Mean_dust_score="NA"
 		Percent_high_quality_reads="NA"
+		length_per_read == "NA" 
+		read_length == "NA"
 		}
-	   
     ##Summary Statistics Per Virus 
     QC_temp = c(N_mapped_reads,N_unique_mapped_reads,Percent_uniquely_mapped,
                 Mean_read_quality,Sd_read_quality,
                 Viral_reads_contents_mean,Read_entropy,Spatial_distribution,Longest_contig,
-                Mean_dust_score,Percent_high_quality_reads)
+                Mean_dust_score,Percent_high_quality_reads, length_per_read, read_length)
     QC_result = rbind(QC_result, QC_temp)
   }
 } else {
   QC_result = data.frame(N_mapped_reads = numeric(),N_unique_mapped_reads=numeric(),Percent_uniquely_mapped=numeric(),
               Mean_read_quality=numeric(),Sd_read_quality=numeric(),
               A = numeric(), C= numeric(), G = numeric(), T = numeric(), Read_entropy=numeric(),Spatial_distribution=numeric(),Longest_contig=numeric(),
-              Mean_dust_score=numeric(),Percent_high_quality_reads=numeric())
+              Mean_dust_score=numeric(),Percent_high_quality_reads=numeric(), length_per_read=numeric(),read_length=numeric())
 }
 cat("\t Calculating VIRAL QC Metrics.... DONE!. \n", file=log, append = TRUE)
 
@@ -479,7 +535,7 @@ if (length(QC_result[,1])>0){
 	colnames(QC_result) = c("N_reads","N_unique_reads","Percent_uniquely_mapped",
 							"Mean_read_quality","Sd_read_quality",
 							c("A","C","G","T"),"Sequence_entropy","Spatial_distribution","Longest_contig",
-							"DUST_score","Percent_high_quality_reads")
+							"DUST_score","Percent_high_quality_reads", "Coverage_per_read_Ratio", "Mean_Read_Length")
 	QC_result <- as.data.frame(QC_result)
 	if(any(QC_result$N_unique_reads != "0")){
 	QC_result <- suppressWarnings(sapply(QC_result, as.numeric))
@@ -657,7 +713,8 @@ if(length(rownames(QC_result))>0){
 	  p3 <- ggplot(QC_result, aes(shape=PassedFiltering, color=genome, x=Sequence_entropy, y=(Spatial_distribution*100))) + geom_point() + scale_color_discrete(drop=FALSE) + scale_shape(drop=FALSE) + labs(color="Genome", shape="Passed Filtering") + theme_classic() + xlab("Sequence Entropy") + ylab("% Mapped genome") + geom_hline(yintercept=5, linetype="dashed", color="grey") + ylim(0, 100) + geom_vline(xintercept=1.2, linetype="dashed", color="grey") + ggtitle("Viral Summary Unique Reads: Unique Read Sequence Complexity")
 	  p4 <- ggplot(QC_result, aes(shape=PassedFiltering, color=genome, x=Longest_contig, y=DUST_score)) + geom_point() + scale_color_discrete(drop=FALSE) + scale_shape(drop=FALSE) + labs(color="Genome", shape="Passed Filtering") + theme_classic() + xlab("Longest Contig (nt)") + ylab("DUST Score") + geom_vline(xintercept=(3*Mean_mapping_length), linetype="dashed", color="grey") + ggtitle("Viral Summary Unique Reads: DUST Score")
 	  p5 <- ggplot(QC_result, aes(shape=PassedFiltering, color=genome, x=Mean_read_quality, y=Sd_read_quality)) + geom_point() + scale_color_discrete(drop=FALSE) + scale_shape(drop=FALSE) + labs(color="Genome", shape="Passed Filtering") + theme_classic() + xlab("Mean Read Quality") + ylab("SD Read Quality") + ggtitle("Viral Summary Unique Reads: Read Quality")
-	  plot(plot_grid(mapping_plot, mapping_host_virus, mapping_summary, Mapping_rate, p1, p2, p3, p4, p5, ncol=3, labels = "AUTO"))
+	  p6 <- ggplot(QC_result, aes(shape=PassedFiltering, color=genome, x=Longest_contig, y=Coverage_per_read_Ratio)) + geom_point() + scale_color_discrete(drop=FALSE) + scale_shape(drop=FALSE) + labs(color="Genome", shape="Passed Filtering") + theme_classic() + xlab("Longest Contig") + ylab("Coverage per Read") + ggtitle("Viral Summary Unique Reads: Read Coverage") + geom_hline(yintercept=0.5, linetype="dashed", color="red") + geom_vline(xintercept=(2*Mean_mapping_length), linetype="dashed", color="grey")+ geom_vline(xintercept=(3*Mean_mapping_length), linetype="dashed", color="green")
+	  plot(plot_grid(mapping_plot, mapping_host_virus, mapping_summary, Mapping_rate, p1, p2, p3, p4, p5, p6, ncol=3, labels = "AUTO"))
 	} 
 
 	if(sum(QC_result$N_unique_reads)==0){
@@ -728,7 +785,13 @@ start_time_f <- Sys.time()
 cat(paste0("-T: Threads for featureCounts: ", N_thread, " \n"), file=log, append=TRUE)
 cat("Start Time Feature Counts: ", start_time_f, "\n", file=log, append=TRUE)
 ## Assigning reads to transcripts using Featurecounts
-featurecommand = paste("featureCounts -B -C -t transcript -g gene_id -T ", N_thread, " -a ", path_to_gtf, " -o ", temp_output_dir, "/counts.txt -p -s 0 " , feature_count_path, " 2> ", name_prefix, "_FEATURE_COUNTS.log", sep="")
+#https://manpages.debian.org/testing/subread/featureCounts.1.en.html
+if(opt$p ==TRUE){
+	featurecommand = paste("featureCounts -B -C -t transcript -g gene_id -T ", N_thread, " -a ", path_to_gtf, " -o ", temp_output_dir, "/counts.txt -p -s 0 " , feature_count_path, " 2> ", name_prefix, "_FEATURE_COUNTS.log", sep="")
+} else {
+	featurecommand = paste("featureCounts -t transcript -g gene_id -T ", N_thread, " -a ", path_to_gtf, " -o ", temp_output_dir, "/counts.txt -s 0 " , feature_count_path, " 2> ", name_prefix, "_FEATURE_COUNTS.log", sep="")
+
+}
 system(featurecommand)
 end_time_f <- Sys.time()
 cat("End Time Feature Counts: ", end_time_f, "\n", file=log, append=TRUE)
@@ -813,7 +876,6 @@ cat("----------------------------------------------\n", file=log, append=TRUE)
 ## Finally move log file into report directory 
 move <- paste0("mv ", log, " ", Report_dir )
 system(move)
-
 ## PIPELINE COMPLETE
 
 
