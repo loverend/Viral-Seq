@@ -306,7 +306,6 @@ temp_chromosome_count = temp_chromosome_count[temp_chromosome_count$Mapped_reads
 no_viruses <- length(temp_chromosome_count[,1])
 cat(paste0("\t 4. Identified ", no_viruses, " viruses with at least ", Minimal_read_mapped, " Reads in input Fastq. \n"), file=log, append = TRUE)
 
-
 # Create a sub-directory to export the sam files corresponding to each Virus
 newdir <- paste(temp_output_dir,"/Viral_BAM_files",sep = "")
 dir.create(newdir)
@@ -320,8 +319,10 @@ if (length(temp_chromosome_count[,1]) <= N_thread) {
   } else {
     N_threadR <- length(temp_chromosome_count[,1])
   } 
-  } else {N_threadR <- N_thread 
+} else {
+  N_threadR <- N_thread 
 }
+
 cat("\t 5.a  Setting up Parrallel Environment in R using: ", N_threadR, " Threads. \n", file=log, append = TRUE)
 cl =makeCluster(N_threadR)
 registerDoParallel(cl)
@@ -455,7 +456,7 @@ if(length(list.files(dir))>0){
 		colnames(coverage_file) <- sample_name
 		write.table(coverage_file, paste0(temp_output_dir, "/Viral_BAM_files/", z, "_genome_coverage.txt"), sep="\t")
 		pdf(paste0(temp_output_dir, "/Viral_BAM_files/", z, "_genome_coverage.pdf"))
-		plot(as.integer(Covered_genome))
+		plot(Covered_genome, type = "l", xlab=paste0(z, " Genome (bp)"), ylab="No. Mapped Reads (indivual mates)")
 		dev.off()
 		
 		###############
