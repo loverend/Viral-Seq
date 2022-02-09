@@ -28,7 +28,7 @@ option_list <- list(
   make_option(c("-m", "--minreads"), action="store", type="integer", default=1, help="Minimum number of reads per virus prior to use in QC analysis on[default]"),
   make_option(c("-t", "--thresholdmappedreads"), action="store", type="integer", default=50, help="Minimum number of reads per virus to pass filtering [default]"),
   make_option(c("-b", "--bins"), action="store", type="integer", default=50, help="outBAMsortingBinsN for STAR Mapping [default]"),
-  make_option(c("-f", "--fastq"), action="store", type="character", default = '/well/jknight/Sepsis/Gene_Expression/RNASeq/MappedBamFiles/gains8033270/gains8033270.Unmapped.out.mate1 /well/jknight/Sepsis/Gene_Expression/RNASeq/MappedBamFiles/gains8033270/gains8033270.Unmapped.out.mate2', help="Path to input FASTQ file [default]"),
+  make_option(c("-f", "--fastq"), action="store", type="character", default = '/well/jknight/Sepsis/Gene_Expression/RNASeq/MappedBamFiles/gains8033750/gains8033750.Unmapped.out.mate1 /well/jknight/Sepsis/Gene_Expression/RNASeq/MappedBamFiles/gains8033750/gains8033750.Unmapped.out.mate2', help="Path to input FASTQ file [default]"),
   make_option(c("-r", "--runname"), action="store", type="character", default="ViRNA_Seq_Unique", help="Run Name [default]"),
   make_option(c("-v", "--viralannotation"), action="store", type="character", default="/well/immune-rep/shared/CODE/VIRAL_SEQ_Reference/NCBI_Viral_Seq_Reference.txt", help="Path to VirusSite annotation file [default]"),
   make_option(c("-a", "--auxfunctions"), action="store", type="character", default="/well/immune-rep/shared/CODE/Viral-Seq/AuxillaryFunctions/auxillary_viral_track_functions.R", help="Path to ViralTrack Auxillary Functions [default]"),
@@ -423,7 +423,7 @@ if(length(list.files(dir))>0){
 			  QC_result = data.frame(N_mapped_reads = numeric(),N_unique_mapped_reads=numeric(),Percent_uniquely_mapped=numeric(),
               Mean_read_quality=numeric(),Sd_read_quality=numeric(),
               A = numeric(), C= numeric(), G = numeric(), T = numeric(), Read_entropy=numeric(),Spatial_distribution=numeric(),Longest_contig=numeric(),
-              Mean_dust_score=numeric(),Percent_high_quality_reads=numeric())
+              Mean_dust_score=numeric(),Percent_high_quality_reads=numeric(), length_per_read=numeric(), read_length=numeric())
 		}
 		next
 	} else {
@@ -505,8 +505,8 @@ if(length(list.files(dir))>0){
 		Longest_contig="NA"
         Mean_dust_score="NA"
 		Percent_high_quality_reads="NA"
-		length_per_read == "NA" 
-		read_length == "NA"
+		length_per_read ="NA" 
+		read_length = "NA"
 		}
     ##Summary Statistics Per Virus 
     QC_temp = c(N_mapped_reads,N_unique_mapped_reads,Percent_uniquely_mapped,
@@ -527,20 +527,26 @@ cat("\t Calculating VIRAL QC Metrics.... DONE!. \n", file=log, append = TRUE)
 ## ------------------------------------------------------------------------------------
 ## Now we perform filtering based ont the Calculaed QC statsitics: 
 ## Editied by LEO -- otherwise fails if only one virus is detected as produces numeric vector rather than dataframe. 
-suppressWarnings(if (class(QC_result)=="numeric"){
+suppressWarnings(if (class(QC_result)=="numeric" ){
   cat('Only one virus detected - output is not a dataframe: converting \n', file=log, append = TRUE)
   QC_result <- as.data.frame(t(as.data.frame(QC_result)))
 })
 
+suppressWarnings(if (class(QC_result)[1]=="matrix" | class(QC_result)[1]=="matrix"){
+  cat('Only one virus detected - output is not a dataframe: converting \n', file=log, append = TRUE)
+  QC_result <- as.data.frame(as.data.frame(QC_result))
+})
+
+## if only one virus detected we can sometimes get errors with converting to dataframe/lapply (goes to vector) hence the if statements
 if (length(QC_result[,1])>0){
-	colnames(QC_result) = c("N_reads","N_unique_reads","Percent_uniquely_mapped",
-							"Mean_read_quality","Sd_read_quality",
-							c("A","C","G","T"),"Sequence_entropy","Spatial_distribution","Longest_contig",
-							"DUST_score","Percent_high_quality_reads", "Coverage_per_read_Ratio", "Mean_Read_Length")
+	colnames(QC_result) = c("N_reads","N_unique_reads","Percent_uniquely_mapped","Mean_read_quality","Sd_read_quality",c("A","C","G","T"),"Sequence_entropy","Spatial_distribution","Longest_contig","DUST_score","Percent_high_quality_reads", "Coverage_per_read_Ratio", "Mean_Read_Length")
 	QC_result <- as.data.frame(QC_result)
 	if(any(QC_result$N_unique_reads != "0")){
-	QC_result <- suppressWarnings(sapply(QC_result, as.numeric))
-	QC_result <- as.data.frame(QC_result)
+		QC_result <- suppressWarnings(sapply(QC_result, as.numeric))
+		if (class(QC_result)=="numeric"){
+			QC_result <- as.data.frame(t(as.data.frame(QC_result)))
+		}
+		QC_result <- as.data.frame(QC_result)
 	} else {
 	QC_result$N_reads <- as.numeric(QC_result$N_reads)
 	QC_result$N_unique_reads <- as.numeric(QC_result$N_unique_reads)
@@ -549,6 +555,7 @@ if (length(QC_result[,1])>0){
 } 
 QC_result <- as.data.frame(QC_result)
 QC_result$genome <- rownames(QC_result)
+
 
 ### ------------------------------------------------------------------------------------
 ## Now we need to extract information on the mapping by itself to get information about the QC
@@ -714,8 +721,10 @@ if(length(rownames(QC_result))>0){
 	  p3 <- ggplot(QC_result, aes(shape=PassedFiltering, color=genome, x=Sequence_entropy, y=(Spatial_distribution*100))) + geom_point() + scale_color_discrete(drop=FALSE) + scale_shape(drop=FALSE) + labs(color="Genome", shape="Passed Filtering") + theme_classic() + xlab("Sequence Entropy") + ylab("% Mapped genome") + geom_hline(yintercept=5, linetype="dashed", color="grey") + ylim(0, 100) + geom_vline(xintercept=1.2, linetype="dashed", color="grey") + ggtitle("Viral Summary Unique Reads: Unique Read Sequence Complexity")
 	  p4 <- ggplot(QC_result, aes(shape=PassedFiltering, color=genome, x=Longest_contig, y=DUST_score)) + geom_point() + scale_color_discrete(drop=FALSE) + scale_shape(drop=FALSE) + labs(color="Genome", shape="Passed Filtering") + theme_classic() + xlab("Longest Contig (nt)") + ylab("DUST Score") + geom_vline(xintercept=(3*Mean_mapping_length), linetype="dashed", color="grey") + ggtitle("Viral Summary Unique Reads: DUST Score")
 	  p5 <- ggplot(QC_result, aes(shape=PassedFiltering, color=genome, x=Mean_read_quality, y=Sd_read_quality)) + geom_point() + scale_color_discrete(drop=FALSE) + scale_shape(drop=FALSE) + labs(color="Genome", shape="Passed Filtering") + theme_classic() + xlab("Mean Read Quality") + ylab("SD Read Quality") + ggtitle("Viral Summary Unique Reads: Read Quality")
-	  p6 <- ggplot(QC_result, aes(shape=PassedFiltering, color=genome, x=Longest_contig, y=Coverage_per_read_Ratio)) + geom_point() + scale_color_discrete(drop=FALSE) + scale_shape(drop=FALSE) + labs(color="Genome", shape="Passed Filtering") + theme_classic() + xlab("Longest Contig") + ylab("Coverage per Read") + ggtitle("Viral Summary Unique Reads: Read Coverage") + geom_hline(yintercept=0.5, linetype="dashed", color="red") + geom_vline(xintercept=(2*Mean_mapping_length), linetype="dashed", color="grey")+ geom_vline(xintercept=(3*Mean_mapping_length), linetype="dashed", color="green")
-	  plot(plot_grid(mapping_plot, mapping_host_virus, mapping_summary, Mapping_rate, p1, p2, p3, p4, p5, p6, ncol=3, labels = "AUTO"))
+	  p6 <- ggplot(QC_result, aes(shape=PassedFiltering, color=genome, x=Longest_contig, y=Coverage_per_read_Ratio)) + geom_point() + scale_color_discrete(drop=FALSE) + scale_shape(drop=FALSE) + labs(color="Genome", shape="Passed Filtering") + theme_classic() + xlab("Longest Contig") + ylab("Coverage per Read Ratio") + ggtitle("Viral Summary Unique Reads: Read Coverage") + geom_hline(yintercept=0.5, linetype="dashed", color="red") + geom_vline(xintercept=(2*Mean_mapping_length), linetype="dashed", color="grey")+ geom_vline(xintercept=(3*Mean_mapping_length), linetype="dashed", color="green")
+	  p7 <- ggplot(QC_result, aes(shape=PassedFiltering, color=genome, x=N_unique_reads, y=Coverage_per_read_Ratio)) + geom_point() + scale_color_discrete(drop=FALSE) + scale_shape(drop=FALSE) + labs(color="Genome", shape="Passed Filtering") + theme_classic() + xlab("Number of Uniquely Mapped Reads") + ylab("Coverage per Read Ratio") + ggtitle("Viral Summary Unique Reads: Read Coverage") + geom_hline(yintercept=0.5, linetype="dashed", color="red") 
+	  p8 <- ggplot(QC_result, aes(shape=PassedFiltering, color=genome, x=(Spatial_distribution*100), y=Coverage_per_read_Ratio)) + geom_point() + scale_color_discrete(drop=FALSE) + scale_shape(drop=FALSE) + labs(color="Genome", shape="Passed Filtering") + theme_classic() + xlab("% Mapped genome") + ylab("Coverage per Read Ratio") + ggtitle("Viral Summary Unique Reads: Read Coverage") + geom_hline(yintercept=0.5, linetype="dashed", color="red") 
+	  plot(plot_grid(mapping_plot, mapping_host_virus, mapping_summary, Mapping_rate, p1, p2, p3, p4, p5, p6, p7, p8, ncol=3, labels = "AUTO"))
 	} 
 
 	if(sum(QC_result$N_unique_reads)==0){
