@@ -62,6 +62,10 @@ echo "********************************************************"
 echo
 eval "${CMD}"
 
+## If Job runs successfully sample will be output to a check file
+NWCMD="echo ${SAMPLE} >> job_${1}_SuccessfullCompletedSamples.txt"
+eval "${NWCMD}"
+
 # Done 
 echo
 echo "********************************************************"

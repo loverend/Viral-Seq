@@ -28,7 +28,7 @@ option_list <- list(
   make_option(c("-m", "--minreads"), action="store", type="integer", default=1, help="Minimum number of reads per virus prior to use in QC analysis on[default]"),
   make_option(c("-t", "--thresholdmappedreads"), action="store", type="integer", default=50, help="Minimum number of reads per virus to pass filtering [default]"),
   make_option(c("-b", "--bins"), action="store", type="integer", default=50, help="outBAMsortingBinsN for STAR Mapping [default]"),
-  make_option(c("-f", "--fastq"), action="store", type="character", default = '/well/jknight/Sepsis/Gene_Expression/RNASeq/MappedBamFiles/gains8033750/gains8033750.Unmapped.out.mate1 /well/jknight/Sepsis/Gene_Expression/RNASeq/MappedBamFiles/gains8033750/gains8033750.Unmapped.out.mate2', help="Path to input FASTQ file [default]"),
+  make_option(c("-f", "--fastq"), action="store", type="character", default = '/well/jknight/Sepsis/Gene_Expression/RNASeq/MappedBamFiles/gains8033834/gains8033834.Unmapped.out.mate1 /well/jknight/Sepsis/Gene_Expression/RNASeq/MappedBamFiles/gains8033834/gains8033834.Unmapped.out.mate2', help="Path to input FASTQ file [default]"),
   make_option(c("-r", "--runname"), action="store", type="character", default="ViRNA_Seq_Unique", help="Run Name [default]"),
   make_option(c("-v", "--viralannotation"), action="store", type="character", default="/well/immune-rep/shared/CODE/VIRAL_SEQ_Reference/NCBI_Viral_Seq_Reference.txt", help="Path to VirusSite annotation file [default]"),
   make_option(c("-a", "--auxfunctions"), action="store", type="character", default="/well/immune-rep/shared/CODE/Viral-Seq/AuxillaryFunctions/auxillary_viral_track_functions.R", help="Path to ViralTrack Auxillary Functions [default]"),
@@ -227,7 +227,13 @@ source(opt$auxfunctions)
 is_gz_file = any(grepl(pattern = ".gz", opt$f))
 name_target = sample_name  #Cleaning the name to get the original Amplification batch number
 temp_output_dir = paste0(Output_directory, "/", name_target)
-dir.create(temp_output_dir)
+
+if (dir.exists(temp_output_dir)){
+    cat("Output directory exists. \n", file=log, append = TRUE)
+} else {
+    dir.create(file.path(temp_output_dir))
+	 cat("Output directory created. \n", file=log, append = TRUE)
+}
 
 ## ------------------------------------------------------------------------------------
 ## Making GTF if no GTF provided. 
@@ -308,7 +314,9 @@ cat(paste0("\t 4. Identified ", no_viruses, " viruses with at least ", Minimal_r
 
 # Create a sub-directory to export the sam files corresponding to each Virus
 newdir <- paste(temp_output_dir,"/Viral_BAM_files",sep = "")
-dir.create(newdir)
+if(!dir.exists(file.path(newdir))){
+	dir.create(file.path(newdir))
+}
  
 # Extracting Viral Read BAM file per virus into new Directory: 
 cat("\t 5. Extracting BAMs files to new directories. \n", file=log, append = TRUE)
@@ -344,7 +352,9 @@ virus_sequence_names <- grep("refseq|NC_", rownames(temp_chromosome_count_human)
 human_chromosomes <- rownames(temp_chromosome_count_human)[rownames(temp_chromosome_count_human) %notin% virus_sequence_names]
 human_chromosomes <- human_chromosomes[human_chromosomes!="*"]
 temp_chromosome_count_human = temp_chromosome_count_human[rownames(temp_chromosome_count_human)%in% human_chromosomes ,]
-dir.create(paste(temp_output_dir,"/HUMAN_BAM_files",sep = ""))
+if(!dir.exists(file.path(paste(temp_output_dir,"/HUMAN_BAM_files",sep = "")))){
+	dir.create(file.path(paste(temp_output_dir,"/HUMAN_BAM_files",sep = "")))
+}
 invisible(foreach(i=rownames(temp_chromosome_count_human)) %dopar% {
   temp_export_bam_command = paste("samtools view -b ",temp_sorted_bam," \'",i,"\'"," > \'",temp_output_dir,"/HUMAN_BAM_files/",i,".bam\'",sep = "")
   system(temp_export_bam_command)
@@ -569,15 +579,17 @@ cat("\t 8. Filtering on QC Metrics. \n", file=log, append = TRUE)
 detected_virus = rownames(QC_result[QC_result$N_reads > opt$t & QC_result$Sequence_entropy>1.2 & QC_result$Longest_contig>3*Mean_mapping_length & QC_result$Spatial_distribution>0.05,])
 
 ## Add on metric True/False filtering to QC tabel which is used later in plotting: 
-QC_result[,"PassedFiltering"] <- NA
-for (j in 1:length(QC_result$genome)){
-	i <- QC_result$genome[j]
-	if (i %in% detected_virus){
-		QC_result$PassedFiltering[j] <-"PASS"
-	} else {
-		QC_result$PassedFiltering[j] <- "FAIL"
+if(length(QC_result[,1])>0){
+	QC_result[,"PassedFiltering"] <- NA
+	for (j in 1:length(QC_result$genome)){
+		i <- QC_result$genome[j]
+		if (i %in% detected_virus){
+			QC_result$PassedFiltering[j] <-"PASS"
+		} else {
+			QC_result$PassedFiltering[j] <- "FAIL"
+		}
 	}
-}
+} 
 
 ## Returning QC Metrics for viruses that passed Filtering 
 Filtered_QC=QC_result[detected_virus,]
@@ -842,7 +854,9 @@ cat("\n Exporting RNA_SEQ Counts summary... DONE! \n", file=log, append = TRUE)
 ## Now we just move files of interest into the Report directory: 
 cat("Creating Report Directory. \n", file=log, append=TRUE)
 Report_dir <- paste0(temp_output_dir, "/Reports")
-dir.create(Report_dir)
+if(!dir.exists(file.path(Report_dir))){
+	dir.create(file.path(Report_dir))
+}
 cat("Moving Useful Files into Report Directory. \n", file=log, append=TRUE)
 move <- paste0("mv ", VIRNA_COUNTS_SUMMARY, " ",  Report_dir )
 system(move)
