@@ -553,9 +553,9 @@ if (length(QC_result[,1])>0){
 	QC_result <- as.data.frame(QC_result)
 	if(any(QC_result$N_unique_reads != "0")){
 		QC_result <- suppressWarnings(sapply(QC_result, as.numeric))
-		if (class(QC_result)=="numeric"){
+		suppressWarnings(if(class(QC_result)=="numeric"){
 			QC_result <- as.data.frame(t(as.data.frame(QC_result)))
-		}
+		})
 		QC_result <- as.data.frame(QC_result)
 	} else {
 	QC_result$N_reads <- as.numeric(QC_result$N_reads)

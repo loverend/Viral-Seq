@@ -1,0 +1,17 @@
+/well/jknight/Sepsis/Gene_Expression/RNASeq/MappedBamFiles/gains8033749/gains8033749.Unmapped.out.mate1 /well/jknight/Sepsis/Gene_Expression/RNASeq/MappedBamFiles/gains8033749/gains8033749.Unmapped.out.mate2
+/well/jknight/Sepsis/Gene_Expression/RNASeq/MappedBamFiles/gains8033112/gains8033112.Unmapped.out.mate1 /well/jknight/Sepsis/Gene_Expression/RNASeq/MappedBamFiles/gains8033112/gains8033112.Unmapped.out.mate2
+/well/jknight/Sepsis/Gene_Expression/RNASeq/MappedBamFiles/gains8033193/gains8033193.Unmapped.out.mate1 /well/jknight/Sepsis/Gene_Expression/RNASeq/MappedBamFiles/gains8033193/gains8033193.Unmapped.out.mate2
+/well/jknight/Sepsis/Gene_Expression/RNASeq/MappedBamFiles/gains8033489/gains8033489.Unmapped.out.mate1 /well/jknight/Sepsis/Gene_Expression/RNASeq/MappedBamFiles/gains8033489/gains8033489.Unmapped.out.mate2
+/well/jknight/Sepsis/Gene_Expression/RNASeq/MappedBamFiles/gains8033399/gains8033399.Unmapped.out.mate1 /well/jknight/Sepsis/Gene_Expression/RNASeq/MappedBamFiles/gains8033399/gains8033399.Unmapped.out.mate2
+/well/jknight/Sepsis/Gene_Expression/RNASeq/MappedBamFiles/gains8033244/gains8033244.Unmapped.out.mate1 /well/jknight/Sepsis/Gene_Expression/RNASeq/MappedBamFiles/gains8033244/gains8033244.Unmapped.out.mate2
+/well/jknight/Sepsis/Gene_Expression/RNASeq/MappedBamFiles/gains8033649/gains8033649.Unmapped.out.mate1 /well/jknight/Sepsis/Gene_Expression/RNASeq/MappedBamFiles/gains8033649/gains8033649.Unmapped.out.mate2
+/well/jknight/Sepsis/Gene_Expression/RNASeq/MappedBamFiles/gains8033956/gains8033956.Unmapped.out.mate1 /well/jknight/Sepsis/Gene_Expression/RNASeq/MappedBamFiles/gains8033956/gains8033956.Unmapped.out.mate2
+/well/jknight/Sepsis/Gene_Expression/RNASeq/MappedBamFiles/gains8033193/gains8033193.Unmapped.out.mate1 /well/jknight/Sepsis/Gene_Expression/RNASeq/MappedBamFiles/gains8033193/gains8033193.Unmapped.out.mate2
+/well/jknight/Sepsis/Gene_Expression/RNASeq/MappedBamFiles/gains8033749/gains8033749.Unmapped.out.mate1 /well/jknight/Sepsis/Gene_Expression/RNASeq/MappedBamFiles/gains8033749/gains8033749.Unmapped.out.mate2
+/well/jknight/Sepsis/Gene_Expression/RNASeq/MappedBamFiles/gains8033112/gains8033112.Unmapped.out.mate1 /well/jknight/Sepsis/Gene_Expression/RNASeq/MappedBamFiles/gains8033112/gains8033112.Unmapped.out.mate2
+/well/jknight/Sepsis/Gene_Expression/RNASeq/MappedBamFiles/gains8033649/gains8033649.Unmapped.out.mate1 /well/jknight/Sepsis/Gene_Expression/RNASeq/MappedBamFiles/gains8033649/gains8033649.Unmapped.out.mate2
+/well/jknight/Sepsis/Gene_Expression/RNASeq/MappedBamFiles/gains8033244/gains8033244.Unmapped.out.mate1 /well/jknight/Sepsis/Gene_Expression/RNASeq/MappedBamFiles/gains8033244/gains8033244.Unmapped.out.mate2
+/well/jknight/Sepsis/Gene_Expression/RNASeq/MappedBamFiles/gains8033489/gains8033489.Unmapped.out.mate1 /well/jknight/Sepsis/Gene_Expression/RNASeq/MappedBamFiles/gains8033489/gains8033489.Unmapped.out.mate2
+/well/jknight/Sepsis/Gene_Expression/RNASeq/MappedBamFiles/gains8033399/gains8033399.Unmapped.out.mate1 /well/jknight/Sepsis/Gene_Expression/RNASeq/MappedBamFiles/gains8033399/gains8033399.Unmapped.out.mate2
+/well/jknight/Sepsis/Gene_Expression/RNASeq/MappedBamFiles/gains8033956/gains8033956.Unmapped.out.mate1 /well/jknight/Sepsis/Gene_Expression/RNASeq/MappedBamFiles/gains8033956/gains8033956.Unmapped.out.mate2
+/well/jknight/Sepsis/Gene_Expression/RNASeq/MappedBamFiles/gains8033292/gains8033292.Unmapped.out.mate1 /well/jknight/Sepsis/Gene_Expression/RNASeq/MappedBamFiles/gains8033292/gains8033292.Unmapped.out.mate2
