@@ -28,7 +28,8 @@ option_list <- list(
   make_option(c("-m", "--minreads"), action="store", type="integer", default=1, help="Minimum number of reads per virus prior to use in QC analysis on[default]"),
   make_option(c("-t", "--thresholdmappedreads"), action="store", type="integer", default=50, help="Minimum number of reads per virus to pass filtering [default]"),
   make_option(c("-b", "--bins"), action="store", type="integer", default=50, help="outBAMsortingBinsN for STAR Mapping [default]"),
-  make_option(c("-f", "--fastq"), action="store", type="character", default = '/well/jknight/Sepsis/Gene_Expression/RNASeq/MappedBamFiles/gains8033188/gains8033188.Unmapped.out.mate1 /well/jknight/Sepsis/Gene_Expression/RNASeq/MappedBamFiles/gains8033188/gains8033188.Unmapped.out.mate2', help="Path to input FASTQ file [default]"),
+  make_option(c("-f", "--fastq"), action="store", type="character", default = "/well/immune-rep/shared/PUBLISHED_DATASETS/BULK_RNA/EBV_LCL/fastqs/ERR3240275_R1_001.fastq.gz", help="Path to input FASTQ file R1 [default]"),
+  make_option(c("-k", "--kfastq2"), action="store", type="character", default = "/well/immune-rep/shared/PUBLISHED_DATASETS/BULK_RNA/EBV_LCL/fastqs/ERR3240275_R2_001.fastq.gz", help="Path to input FASTQ file R2 [default]"),
   make_option(c("-r", "--runname"), action="store", type="character", default="ViRNA_Seq_Unique", help="Run Name [default]"),
   make_option(c("-v", "--viralannotation"), action="store", type="character", default="/well/immune-rep/shared/CODE/VIRAL_SEQ_Reference/NCBI_Viral_Seq_Reference.txt", help="Path to VirusSite annotation file [default]"),
   make_option(c("-a", "--auxfunctions"), action="store", type="character", default="/well/immune-rep/shared/CODE/Viral-Seq/AuxillaryFunctions/auxillary_viral_track_functions.R", help="Path to ViralTrack Auxillary Functions [default]"),
@@ -38,6 +39,12 @@ option_list <- list(
 
 opt_parser = OptionParser(option_list=option_list);
 opt = parse_args(opt_parser, print_help_and_exit = TRUE, args = commandArgs(trailingOnly = TRUE))
+
+## Bind R1 and R1 
+if(opt$p==TRUE){
+	opt$fastq=paste0(opt$f, " ", opt$k)
+	opt$f=opt$fastq
+}
 
 ##-------------------------------------------------------
 
@@ -121,14 +128,14 @@ suppressMessages(library(reshape2))
 ##-------------------------------------------------------
 
 ## Setting up log.file: 
-if (length(unlist(str_split(opt$f, " "))) >= 2) {
-	x <- unlist(str_split(opt$f, " "))
+if (length(unlist(str_split(opt$fastq, " "))) >= 2) {
+	x <- unlist(str_split(opt$fastq, " "))
 	x <- x[1]
 	name <- unlist(strsplit(x,"/",fixed = T))
 	sample_name <- name[length(name)]
 	sample_name = gsub('.fastq|.fa|.fq|.gz|.mate1|.mate2','',sample_name) 
 } else {
-	name <- unlist(strsplit(opt$f,"/",fixed = T))
+	name <- unlist(strsplit(opt$fastq,"/",fixed = T))
 	sample_name <- name[length(name)]
 	sample_name = gsub('.fastq|.fa|.fq|.gz|.mate1|.mate2','',sample_name)
 } 
@@ -151,16 +158,18 @@ cat(paste0("Checking Input files. \n"), file=log, append=TRUE)
 testfiles  <- function(optfastq){
 List_target_path = c()
 if (!is.null(optfastq)) {
+  print(optfastq)
   if(file.exists(optfastq)){
     cat("FASTQ File present. \n", file=log, append=TRUE) 
-    if(any(grepl(".fa|.fq|.fasta|mate1|mate2", optfastq))==TRUE){
+    if(any(grepl(".fa|.fq|.fasta|.fastq|mate1|mate2", optfastq))==TRUE){
       cat("FASTQ File Type is Valid. \n", file=log, append=TRUE)
       List_target_path = optfastq
     } else {
       stop("Fastq File Provided is Not of Type '.fasta/.fq/.fa/mate1/mate2'. Terminating. \n", file=log, append=TRUE)
     }
   } else {
-    stop("Potential FASTQ Provided but Path is Invalid. Terminating. \n", file=log, append=TRUE)
+   cat(paste0(optfastq, " FASTQ File. \n"), file=log, append=TRUE)
+   stop("Potential FASTQ Provided but Path is Invalid. Terminating. \n", file=log, append=TRUE)
   }
 } else {
    stop("No FASTQ File Provided. Terminating. \n", file=log, append=TRUE)
@@ -168,16 +177,17 @@ if (!is.null(optfastq)) {
 }
 
 ## Test the file path and whether it is a fasta file. Will need to be run seperately on each fastq if multiple files present 
-if (length(unlist(str_split(opt$f, " "))) >= 2) {
+if (length(unlist(str_split(opt$fastq, " "))) >= 2) {
 	cat("More than one input file detected: R1 and R2 File input. \n", file=log, append=TRUE)
-	x <- unlist(str_split(opt$f, " "))
+	x <- unlist(str_split(opt$fastq, " "))
 	for (i in x){
 		testfiles(i)
 	}
 	cat("All files Valid. \n", file=log, append=TRUE)
 } else {
-	testfiles(opt$f)
+	testfiles(opt$fastq)
 } 
+
 
 ##-------------------------------------------------------
 ## Checking the parameters values
@@ -224,7 +234,7 @@ source(opt$auxfunctions)
 ## ------------------------------------------------------------------------------------
 ## Mapping: 
 ## Setting Up Directory: 
-is_gz_file = any(grepl(pattern = ".gz", opt$f))
+is_gz_file = any(grepl(pattern = ".gz", opt$fastq))
 name_target = sample_name  #Cleaning the name to get the original Amplification batch number
 temp_output_dir = paste0(Output_directory, "/", name_target)
 
@@ -252,17 +262,20 @@ cat(paste0("Mapping: ",name_target,".fastq file \n"), file=log, append = TRUE)
 start_time <- Sys.time()
 cat(paste0("Start time: ", start_time, "\n"), file=log, append=TRUE)
 name_prefix = paste0(temp_output_dir, "/", name_target)
-  
+ 
+#If the file is in the format .gz then we need to add an additional paramter :
+if (is_gz_file==TRUE) {
+    cat("NOTE that FASTQ is GZIPPED \n", file=log, append=TRUE)
+	STAR_mapping_commandADD = paste(" --readFilesCommand gunzip -c", sep=" ") #Allowing to read .gz files
+ } else {
+	STAR_mapping_commandADD =""
+}
+
 #We construct a complex command
 # For paired-end reads, two files separated by space have to be specified: 
 STAR_mapping_command = paste("STAR --runThreadN ",N_thread," --outBAMsortingThreadN ",N_thread_sort," --outBAMsortingBinsN ", N_bins, " --genomeDir ",Index_genome," --readFilesIn ", opt$fastq," --outSAMattributes NH HI AS nM NM XS ",
                                "--outFileNamePrefix ",name_prefix," --outSAMtype BAM SortedByCoordinate --twopassMode Basic --seedSearchStartLmax 25 ",
-                               "--outFilterMismatchNoverLmax 0.3 --outMultimapperOrder Random --runRNGseed 1 --outFilterScoreMinOverLread 0.51 --outFilterMatchNminOverLread 0.51 > ", name_prefix, "_STAR_MAPPING.log", sep="")
-
-#If the file is in the format .gz then we need to add an additional paramter :
-if (is_gz_file==TRUE) {
-    STAR_mapping_command = paste(STAR_mapping_command, "--readFilesCommand zcat", sep=" ") #Allowing to read .gz files
-    }
+                               "--outFilterMismatchNoverLmax 0.3 --outMultimapperOrder Random --runRNGseed 1 --outFilterScoreMinOverLread 0.51", STAR_mapping_commandADD, " --outFilterMatchNminOverLread 0.51 > ", name_prefix, "_STAR_MAPPING.log", sep="")
 
 ## Launching STAR COMMAND
 system(STAR_mapping_command)
@@ -886,8 +899,6 @@ move <- paste0("mv ", filteredoutfile, " ", Report_dir )
 system(move)
 move <- paste0("mv ", unfilteredoutfile, " ", Report_dir )
 system(move)
-move <- paste0("mv ", feature_count_path, " ", Report_dir )
-system(move)
 features <- paste0(temp_output_dir, "/", sample_name, "_FEATURE_COUNTS.log")
 move <- paste0("mv ", features, " ", Report_dir )
 system(move)
@@ -906,6 +917,13 @@ clear <- paste0("rm  ", temp_output_dir, "/* 2> /dev/null" )
 system(clear)
 clear <- paste0("rm -r ", temp_output_dir, "/HUMAN_BAM_files")
 system(clear)
+
+## remove the star directories 
+clear <- paste0("rm -r ", paste0(temp_output_dir, "/*_STAR*"))
+system(clear)
+## zip viral bams 
+gzip <- paste0("gzip ", paste0(temp_output_dir, "/Viral_BAM_files/*.bam"))
+system(gzip)
 
 ## -----------------------------------------------------------------------------------
 end_time <- Sys.time()
