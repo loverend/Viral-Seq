@@ -25,3 +25,7 @@ Command : Rscript /well/immune-rep/shared/CODE/Viral-Seq/ViRNAseq_Unique.R -f /w
 ********************************************************
 [1] "/well/immune-rep/shared/PUBLISHED_DATASETS/BULK_RNA/EBV_LCL/fastqs/MUC2279_S22_L008_R1_001.fastq.gz"
 [1] "/well/immune-rep/shared/PUBLISHED_DATASETS/BULK_RNA/EBV_LCL/fastqs/MUC2279_S22_L008_R2_001.fastq.gz"
+
+********************************************************
+[Tue Mar 1 09:49:38 GMT 2022] Done
+********************************************************
