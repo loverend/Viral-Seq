@@ -1,9 +1,0 @@
-Warning messages:
-1: Removed 1 rows containing missing values (geom_point). 
-2: Removed 1 rows containing missing values (geom_point). 
-3: Removed 1 rows containing missing values (geom_point). 
-4: Removed 4 rows containing missing values (geom_point). 
-5: Removed 1 rows containing missing values (geom_point). 
-6: Removed 1 rows containing missing values (geom_point). 
-7: Removed 2 rows containing missing values (geom_point). 
-[bam_sort_core] merging from 16 files and 1 in-memory blocks...

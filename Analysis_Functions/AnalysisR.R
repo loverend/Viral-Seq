@@ -39,50 +39,53 @@ Virus_lengths <- Virus_database[,c("Virus_name", "Genome_length")]
 Virus_database <- Virus_database[,c("viral_genome", "Virus_name")]
 Virus_database$Virus_name <- gsub("\\|", "", Virus_database$Virus_name)
 #-------------------------------------------------------------------------------------------------------------
-# Reading in samples and making matrix for unique reads post feature counts:
-paths <- list.files(paste0(outputdir, "/ViRNA_SEQ_UNIQUE_Mapping_Analysis"), recursive=TRUE, full.name=TRUE)
-paths <- grep("COUNTS_SUMMARY", paths, value=TRUE)
-#create a list of dataframes 
-df_list <- lapply(paths, fread, header = FALSE, sep="\t")
-# identify the sample they came from 
-d <- str_split(paths, "VIRNAseq_COUNTS_SUMMARY_") 
-d <- sapply(d, "[[", 2)  
-d <- gsub(".Unmapped.out.txt", "", d)
-# Name each dataframe with the run and filename
-names(df_list) <- d
-# Create combined dataframe  
-df <- rbindlist(df_list, idcol=TRUE)
-df$V1=NULL 
-colnames(df) <- c("Sample", "Geneid", "Chr", "Start", "End", "Strand", "Length", "count", "VirusFilter")
-## Annotate Human chromosomes counts  
-human_chromosomes <- paste(0:22)
-human_chromosomes <- c(human_chromosomes, "X", "Y")
-df$Chr[df$Chr %in% human_chromosomes] <- paste0("Chr", df$Chr[df$Chr %in% human_chromosomes])
-## Make wide format
-df_wide <- dcast(df, Sample ~ Chr, value.var = "count")
-viral_counts <- df_wide
-### THIS IS DATA FRAME OF FINAL COUNTS (post FEATURECOUNTS)
-write.table(df_wide, paste0(outputdir, "FINAL_COUNTS_WIDE.txt"), sep="\t", row.names=FALSE)
+# READ COUNTING ANALYSIS 
+source('/gpfs2/well/immune-rep/shared/CODE/Viral-Seq/Analysis_Functions/CombineCounts.R')
 
-## Need to normalise and do counts per million ## THIS IS USING EDGE R ANALYSIS 
-df_normalise <- data.frame(t(df_wide))
-colnames(df_normalise) <- df_normalise[1,]
-df_normalise <- df_normalise[-1,]
-mx_normalise <- as.matrix(df_normalise)
-storage.mode(mx_normalise) <- "numeric"
-countdata <- mx_normalise
-y <- DGEList(mx_normalise)
-myCPM <- cpm(mx_normalise)
-## Lets look at the normalised counts 
-pdf(paste0(outputdir, "CPM_summary.pdf"), width=15, height=15)
-plot_form <- melt(myCPM)
-colnames(plot_form) <- c("Var", "Sample", "CPM")
-plot_form2 <- melt(mx_normalise)
-colnames(plot_form2) <- c("Var1", "Sample1", "RAW_COUNT")
-new_plot <- cbind(plot_form, plot_form2)
-p1 <- ggplot(new_plot, aes(color=Sample, x=RAW_COUNT, y=CPM)) + geom_point()  + theme_classic() + xlab("Raw Counts") + ylab("Counts Per Million") 
+get_counts('/well/immune-rep/shared/MISEQ/VIRAL_SEQ/VT_FIRST/BULK_CMV/', "All_Reads")
+get_counts('/gpfs2/well/immune-rep/shared/MISEQ/VIRAL_SEQ/HUMAN_FIRST/BULK_CMV_UNMAPPED/', "Unmapped_Reads")
+
+## Compare CMV pre and post 
+CMV_ALL <- read.delim('/well/immune-rep/shared/MISEQ/VIRAL_SEQ/VT_FIRST/BULK_CMV/FINAL_COUNTS_WIDE_VIRUS_All_Reads.txt', header=TRUE)
+CMV_Unmapped <- read.delim('/well/immune-rep/shared/MISEQ/VIRAL_SEQ/HUMAN_FIRST/BULK_CMV_UNMAPPED/FINAL_COUNTS_WIDE_VIRUS_Unmapped_Reads.txt', header=TRUE)
+
+sample_id <- str_split_fixed(rownames(CMV_ALL), "_", 3)
+sample_id <- paste0("Donor", sample_id[,1], "_", sample_id[,2])
+rownames(CMV_ALL) <- sample_id
+CMV_ALL$Sample <- rownames(CMV_ALL)
+sample_id <- str_split_fixed(rownames(CMV_Unmapped), "_", 3)
+sample_id <- paste0("Donor", sample_id[,1], "_", sample_id[,2])
+rownames(CMV_Unmapped) <- sample_id
+CMV_Unmapped$Sample <- rownames(CMV_Unmapped)
+CMV_ALL <- reshape2::melt(CMV_ALL, id.vars=c("Sample"))
+colnames(CMV_ALL) <- c("Sample", "Virus", "Count_ALL")
+CMV_Unmapped <- reshape2::melt(CMV_Unmapped, id.vars=c("Sample"))
+colnames(CMV_Unmapped) <- c("Sample", "Virus", "Count_UNMAPPED")
+
+CMV <- merge(CMV_Unmapped, CMV_ALL, by=c("Sample", "Virus"))
+CMV$TOTAL = (CMV$Count_UNMAPPED+ CMV$Count_ALL) 
+## Detected Viruses
+s <- aggregate(CMV$TOTAL, by=list(CMV$Virus), FUN=sum)
+s <- s[s$x > 0,]
+found_viruses <- as.character(s$Group.1)
+CMV <- CMV[CMV$Virus %in% found_viruses,]
+CMV <- merge(CMV, Virus_database, by.x="Virus", by.y="viral_genome")
+	
+pdf(paste0("/well/immune-rep/shared/MISEQ/VIRAL_SEQ/CMV_comparison.pdf"), width=25, height=10)
+p1 <- ggplot(CMV, aes(color=Virus_name, x=Count_ALL, y=Count_UNMAPPED)) + geom_point()  + theme_bw() + xlab("Counts Using All Reads + Stringent Human Mapping Paramters") + ylab("Counts Using Unmapped Reads + Less Stringent Mapping Paramters")+ggtitle(paste0("CMV Method Comparison")) +labs(colour="Virus") + geom_abline(intercept=0, slope=1, col="red") +facet_zoom(xlim=c(0,20), ylim=c(0,20)) +guides(colour=guide_legend(ncol=2))
 plot(p1)
 dev.off()
+
+#-------------------------------------------------------------------------------------------------------------
+# READ COUNTING ANALYSIS 
+source('/gpfs2/well/immune-rep/shared/CODE/Viral-Seq/Analysis_Functions/CombineCoverage.R')
+
+get_qc('/well/immune-rep/shared/MISEQ/VIRAL_SEQ/VT_FIRST/BULK_CMV/', "All_Reads", "CMV")
+get_qc('/gpfs2/well/immune-rep/shared/MISEQ/VIRAL_SEQ/HUMAN_FIRST/BULK_CMV_UNMAPPED/', "Unmapped_Reads", "CMV")
+
+
+
+
 
 
 #-------------------------------------------------------------------------------------------------------------
