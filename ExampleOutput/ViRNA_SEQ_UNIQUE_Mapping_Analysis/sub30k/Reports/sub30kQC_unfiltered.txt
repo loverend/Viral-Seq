@@ -1,0 +1,2 @@
+N_reads	N_unique_reads	Percent_uniquely_mapped	Mean_read_quality	Sd_read_quality	A	C	G	T	Sequence_entropy	Spatial_distribution	Longest_contig	DUST_score	Percent_high_quality_reads	Coverage_per_read_Ratio	Mean_Read_Length	Coverage_Percent_1000bp	genome	PassedFiltering
+NC_007605.1	91	91	1	35.6382417582418	5.02081270045672	0.210711610486891	0.291610486891386	0.285393258426966	0.212284644194757	1.37435145625837	0.0397385681777178	474	371.076923076923	0.945054945054945	0.50021978021978	150	57.8	NC_007605.1	FAIL

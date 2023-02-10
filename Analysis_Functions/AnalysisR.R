@@ -27,6 +27,7 @@ library(org.Mm.eg.db)
 library(gplots)
 library(RColorBrewer)
 library(NMF)
+library("scatterplot3d") 
 
 # Working directory
 setwd('/well/immune-rep/users/kvi236/VIRUS/Sepsis_Scripts')
@@ -45,10 +46,18 @@ source('/gpfs2/well/immune-rep/shared/CODE/Viral-Seq/Analysis_Functions/CombineC
 get_counts('/well/immune-rep/shared/MISEQ/VIRAL_SEQ/VT_FIRST/BULK_CMV/', "All_Reads")
 get_counts('/gpfs2/well/immune-rep/shared/MISEQ/VIRAL_SEQ/HUMAN_FIRST/BULK_CMV_UNMAPPED/', "Unmapped_Reads")
 
+get_counts('/well/immune-rep/shared/MISEQ/VIRAL_SEQ/VT_FIRST/BULK_EBV_LCL/', "All_Reads")
+get_counts('/gpfs2/well/immune-rep/shared/MISEQ/VIRAL_SEQ/HUMAN_FIRST/BULK_EBV_UNMAPPED/', "Unmapped_Reads")
+
+get_counts('/well/immune-rep/shared/MISEQ/VIRAL_SEQ/VT_FIRST/BULK_HEPC/', "All_Reads")
+get_counts('/well/immune-rep/shared/MISEQ/VIRAL_SEQ/HUMAN_FIRST/BULK_HEPC_UNMAPPED/', "Unmapped_Reads")
+
+get_counts('/well/immune-rep/shared/MISEQ/VIRAL_SEQ/SEPSIS_GAINS_1/', "Unmapped_Reads")
+
+
 ## Compare CMV pre and post 
 CMV_ALL <- read.delim('/well/immune-rep/shared/MISEQ/VIRAL_SEQ/VT_FIRST/BULK_CMV/FINAL_COUNTS_WIDE_VIRUS_All_Reads.txt', header=TRUE)
 CMV_Unmapped <- read.delim('/well/immune-rep/shared/MISEQ/VIRAL_SEQ/HUMAN_FIRST/BULK_CMV_UNMAPPED/FINAL_COUNTS_WIDE_VIRUS_Unmapped_Reads.txt', header=TRUE)
-
 sample_id <- str_split_fixed(rownames(CMV_ALL), "_", 3)
 sample_id <- paste0("Donor", sample_id[,1], "_", sample_id[,2])
 rownames(CMV_ALL) <- sample_id
@@ -61,33 +70,135 @@ CMV_ALL <- reshape2::melt(CMV_ALL, id.vars=c("Sample"))
 colnames(CMV_ALL) <- c("Sample", "Virus", "Count_ALL")
 CMV_Unmapped <- reshape2::melt(CMV_Unmapped, id.vars=c("Sample"))
 colnames(CMV_Unmapped) <- c("Sample", "Virus", "Count_UNMAPPED")
-
-CMV <- merge(CMV_Unmapped, CMV_ALL, by=c("Sample", "Virus"))
+CMV <- merge(CMV_Unmapped, CMV_ALL, by=c("Sample", "Virus"), all=TRUE)
+CMV[is.na(CMV)] <- 0
 CMV$TOTAL = (CMV$Count_UNMAPPED+ CMV$Count_ALL) 
 ## Detected Viruses
 s <- aggregate(CMV$TOTAL, by=list(CMV$Virus), FUN=sum)
 s <- s[s$x > 0,]
 found_viruses <- as.character(s$Group.1)
 CMV <- CMV[CMV$Virus %in% found_viruses,]
-CMV <- merge(CMV, Virus_database, by.x="Virus", by.y="viral_genome")
-	
+CMV <- merge(CMV, Virus_database, by.x="Virus", by.y="viral_genome")	
 pdf(paste0("/well/immune-rep/shared/MISEQ/VIRAL_SEQ/CMV_comparison.pdf"), width=25, height=10)
 p1 <- ggplot(CMV, aes(color=Virus_name, x=Count_ALL, y=Count_UNMAPPED)) + geom_point()  + theme_bw() + xlab("Counts Using All Reads + Stringent Human Mapping Paramters") + ylab("Counts Using Unmapped Reads + Less Stringent Mapping Paramters")+ggtitle(paste0("CMV Method Comparison")) +labs(colour="Virus") + geom_abline(intercept=0, slope=1, col="red") +facet_zoom(xlim=c(0,20), ylim=c(0,20)) +guides(colour=guide_legend(ncol=2))
 plot(p1)
 dev.off()
 
+## Compare EBV pre and post
+EBV_ALL <- read.delim('/well/immune-rep/shared/MISEQ/VIRAL_SEQ/VT_FIRST/BULK_EBV_LCL/FINAL_COUNTS_WIDE_VIRUS_All_Reads.txt', header=TRUE)
+EBV_Unmapped <- read.delim('/well/immune-rep/shared/MISEQ/VIRAL_SEQ/HUMAN_FIRST/BULK_EBV_UNMAPPED/FINAL_COUNTS_WIDE_VIRUS_Unmapped_Reads.txt', header=TRUE)
+EBV_ALL$Sample <- rownames(EBV_ALL)
+EBV_Unmapped$Sample <- rownames(EBV_Unmapped)
+EBV_ALL <- reshape2::melt(EBV_ALL, id.vars=c("Sample"))
+colnames(EBV_ALL) <- c("Sample", "Virus", "Count_ALL")
+EBV_Unmapped <- reshape2::melt(EBV_Unmapped, id.vars=c("Sample"))
+colnames(EBV_Unmapped) <- c("Sample", "Virus", "Count_UNMAPPED")
+EBV_Unmapped$Sample <- gsub(".Unmapped.out", "", EBV_Unmapped$Sample)
+EBV <- merge(EBV_ALL, EBV_Unmapped, by=c("Sample", "Virus"), all = TRUE)
+EBV[is.na(EBV)] <- 0
+EBV$TOTAL = (EBV$Count_UNMAPPED+ EBV$Count_ALL) 
+## Detected Viruses
+s <- aggregate(EBV$TOTAL, by=list(EBV$Virus), FUN=sum)
+s <- s[s$x > 0,]
+found_viruses <- as.character(s$Group.1)
+EBV <- EBV[EBV$Virus %in% found_viruses,]
+EBV <- merge(EBV, Virus_database, by.x="Virus", by.y="viral_genome")	
+pdf(paste0("/well/immune-rep/shared/MISEQ/VIRAL_SEQ/EBV_comparison.pdf"), width=25, height=10)
+p1 <- ggplot(EBV, aes(color=Virus_name, x=Count_ALL, y=Count_UNMAPPED)) + geom_point()  + theme_bw() + xlab("Counts Using All Reads + Stringent Human Mapping Paramters") + ylab("Counts Using Unmapped Reads + Less Stringent Mapping Paramters")+ggtitle(paste0("CMV Method Comparison")) +labs(colour="Virus") + geom_abline(intercept=0, slope=1, col="red") +facet_zoom(xlim=c(0,20), ylim=c(0,20)) +guides(colour=guide_legend(ncol=2))
+plot(p1)
+dev.off()
+
+## Compare HEPC pre and post
+HEPC_ALL <- read.delim('/well/immune-rep/shared/MISEQ/VIRAL_SEQ/VT_FIRST/BULK_HEPC/FINAL_COUNTS_WIDE_VIRUS_All_Reads.txt', header=TRUE)
+HEPC_Unmapped <- read.delim('/well/immune-rep/shared/MISEQ/VIRAL_SEQ/HUMAN_FIRST/BULK_HEPC_UNMAPPED/FINAL_COUNTS_WIDE_VIRUS_Unmapped_Reads.txt', header=TRUE)
+HEPC_ALL$Sample <- rownames(HEPC_ALL)
+HEPC_Unmapped$Sample <- rownames(HEPC_Unmapped)
+HEPC_ALL <- reshape2::melt(HEPC_ALL, id.vars=c("Sample"))
+colnames(HEPC_ALL) <- c("Sample", "Virus", "Count_ALL")
+HEPC_Unmapped <- reshape2::melt(HEPC_Unmapped, id.vars=c("Sample"))
+colnames(HEPC_Unmapped) <- c("Sample", "Virus", "Count_UNMAPPED")
+HEPC_Unmapped$Sample <- gsub(".Unmapped.out", "", HEPC_Unmapped$Sample)
+HEPC <- merge(HEPC_ALL, HEPC_Unmapped, by=c("Sample", "Virus"), all = TRUE)
+HEPC[is.na(HEPC)] <- 0
+HEPC$TOTAL = (HEPC$Count_UNMAPPED+ HEPC$Count_ALL) 
+## Detected Viruses
+s <- aggregate(HEPC$TOTAL, by=list(HEPC$Virus), FUN=sum)
+s <- s[s$x > 0,]
+found_viruses <- as.character(s$Group.1)
+HEPC <- HEPC[HEPC$Virus %in% found_viruses,]
+HEPC <- merge(HEPC, Virus_database, by.x="Virus", by.y="viral_genome")	
+pdf(paste0("/well/immune-rep/shared/MISEQ/VIRAL_SEQ/HEPC_comparison.pdf"), width=30, height=15)
+p1 <- ggplot(HEPC, aes(color=Virus_name, x=Count_ALL, y=Count_UNMAPPED)) + geom_point()  + theme_bw() + xlab("Counts Using All Reads + Stringent Human Mapping Paramters") + ylab("Counts Using Unmapped Reads + Less Stringent Mapping Paramters")+ggtitle(paste0("CMV Method Comparison")) +labs(colour="Virus") + geom_abline(intercept=0, slope=1, col="red") +facet_zoom(xlim=c(0,20), ylim=c(0,20)) +guides(colour=guide_legend(ncol=3))
+plot(p1)
+dev.off()
+
+
 #-------------------------------------------------------------------------------------------------------------
 # READ COUNTING ANALYSIS 
-source('/gpfs2/well/immune-rep/shared/CODE/Viral-Seq/Analysis_Functions/CombineCoverage.R')
-
+source('/gpfs2/well/immune-rep/shared/CODE/Viral-Seq/Analysis_Functions/CombineQC.R')
 get_qc('/well/immune-rep/shared/MISEQ/VIRAL_SEQ/VT_FIRST/BULK_CMV/', "All_Reads", "CMV")
 get_qc('/gpfs2/well/immune-rep/shared/MISEQ/VIRAL_SEQ/HUMAN_FIRST/BULK_CMV_UNMAPPED/', "Unmapped_Reads", "CMV")
+get_qc('/well/immune-rep/shared/MISEQ/VIRAL_SEQ/VT_FIRST/BULK_EBV_LCL/', "All_Reads", "EBV")
+get_qc('/gpfs2/well/immune-rep/shared/MISEQ/VIRAL_SEQ/HUMAN_FIRST/BULK_EBV_UNMAPPED/', "Unmapped_Reads", "EBV")
+get_qc('/well/immune-rep/shared/MISEQ/VIRAL_SEQ/SEPSIS_GAINS_1/', "Unmapped_Reads")
+
+EBV_QC_ALL <- read.delim('/well/immune-rep/shared/MISEQ/VIRAL_SEQ/VT_FIRST/BULK_EBV_LCL/QC_measures_All_Reads.txt', header=TRUE)
+colnames(EBV_QC_ALL) <- paste0(colnames(EBV_QC_ALL), "_ALL")
+colnames(EBV_QC_ALL)[colnames(EBV_QC_ALL)=="Sample_ALL"] <- "Sample"
+colnames(EBV_QC_ALL)[colnames(EBV_QC_ALL) =="Virus_ALL"] <- "Virus"
+
+EBV_QC_Unmapped <- read.delim('/well/immune-rep/shared/MISEQ/VIRAL_SEQ/HUMAN_FIRST/BULK_EBV_UNMAPPED/QC_measures_Unmapped_Reads.txt', header=TRUE)
+colnames(EBV_QC_Unmapped) <- paste0(colnames(EBV_QC_Unmapped), "_Unmapped")
+colnames(EBV_QC_Unmapped)[colnames(EBV_QC_Unmapped)=="Sample_Unmapped"] <- "Sample"
+colnames(EBV_QC_Unmapped)[colnames(EBV_QC_Unmapped) =="Virus_Unmapped"] <- "Virus"
+EBV_QC <- merge(EBV_QC_ALL, EBV_QC_Unmapped, by=c("Sample", "Virus"), all = TRUE)	
+EBV_QC <- merge(EBV_QC, Virus_database, by.x="Virus", by.y="viral_genome")
+EBV_QC[is.na(EBV_QC)]<-0
+EBV_QC$VIRUS_USE_Unmapped[EBV_QC$VIRUS_USE_Unmapped==0] <- "NEGATIVE"
+
+pdf(paste0("/well/immune-rep/shared/MISEQ/VIRAL_SEQ/EBV_Contig_comparison.pdf"), width=20, height=20)
+p1 <- ggscatter(EBV_QC, y="Longest_contig_Unmapped", x="Longest_contig_ALL", add = "reg.line") +geom_point(aes(color=Virus_name), alpha=0.7)  + theme_bw() + xlab("Longest Contig Using All Reads + Stringent Human Mapping Paramters") + ylab("Longest Contig Using Unmapped Reads + Less Stringent Mapping Paramters")+ggtitle(paste0("EBV Method Comparison")) +labs(colour="Virus") + geom_abline(intercept=0, slope=1, col="red") +guides(colour=guide_legend(ncol=1)) +geom_vline(xintercept=100, col="blue")+geom_vline(xintercept=200, col="green")+geom_hline(yintercept=100, col="blue")+geom_hline(yintercept=200, col="green") + stat_cor(method = "pearson", label.x = 300, label.y =2000)+facet_zoom(xlim=c(0,200), ylim=c(0,200))
+p2<- ggscatter(EBV_QC, y="Longest_contig_Unmapped", x="Longest_contig_ALL", add = "reg.line") +geom_point(aes(color=VIRUS_USE_Unmapped), alpha=0.7)  + theme_bw() + xlab("Longest Contig Using All Reads + Stringent Human Mapping Paramters") + ylab("Longest Contig Using Unmapped Reads + Less Stringent Mapping Paramters")+ggtitle(paste0("EBV Method Comparison")) +labs(colour="Virus") + geom_abline(intercept=0, slope=1, col="red") +guides(colour=guide_legend(ncol=1)) +geom_vline(xintercept=100, col="blue")+geom_vline(xintercept=200, col="green")+geom_hline(yintercept=100, col="blue")+geom_hline(yintercept=200, col="green") + stat_cor(method = "pearson", label.x = 300, label.y =2000)+facet_zoom(xlim=c(0,200), ylim=c(0,200))
+plot(plot_grid(p1, p2, ncol=1))
+p1 <- ggscatter(EBV_QC, y="Longest_contig_Unmapped", x="N_reads_Unmapped") +geom_point(aes(color=Virus_name), alpha=0.7)  + theme_bw() + xlab("Number of Reads (Unmapped Reads + Less Stringent Mapping Paramters)") + ylab("Longest Contig Using Unmapped Reads + Less Stringent Mapping Paramters")+ggtitle(paste0("EBV Method Comparison")) +labs(colour="Virus") +guides(colour=guide_legend(ncol=1)) +geom_vline(xintercept=5, col="blue")+geom_vline(xintercept=10, col="green")+geom_hline(yintercept=100, col="blue")+geom_hline(yintercept=200, col="green") +facet_zoom(xlim=c(0,75), ylim=c(0,300))
+p2 <- ggscatter(EBV_QC, y="Longest_contig_Unmapped", x="N_reads_Unmapped") +geom_point(aes(color=VIRUS_USE_Unmapped), alpha=0.7)  + theme_bw() + xlab("Number of Reads (Unmapped Reads + Less Stringent Mapping Paramters)") + ylab("Longest Contig Using Unmapped Reads + Less Stringent Mapping Paramters")+ggtitle(paste0("EBV Method Comparison")) +labs(colour="Virus") +guides(colour=guide_legend(ncol=1)) +geom_vline(xintercept=5, col="blue")+geom_vline(xintercept=10, col="green")+geom_hline(yintercept=100, col="blue")+geom_hline(yintercept=200, col="green") +facet_zoom(xlim=c(0,75), ylim=c(0,300))
+plot(plot_grid(p1, p2, ncol=1))
+p1 <- ggscatter(EBV_QC, y="Longest_contig_Unmapped", x="Coverage_per_read_Ratio_Unmapped") +geom_point(aes(color=Virus_name), alpha=0.7)  + theme_bw() + xlab("Coverage per read (Unmapped Reads + Less Stringent Mapping Paramters)") + ylab("Longest Contig (Unmapped Reads + Less Stringent Mapping Paramters)")+ggtitle(paste0("EBV Method Comparison")) +labs(colour="Virus") +guides(colour=guide_legend(ncol=1)) +geom_vline(xintercept=5, col="blue")+geom_vline(xintercept=10, col="green")+geom_hline(yintercept=100, col="blue")+geom_hline(yintercept=200, col="green") +facet_zoom(xlim=c(0,1.5), ylim=c(0,300))
+p2 <- ggscatter(EBV_QC, y="Longest_contig_Unmapped", x="Coverage_per_read_Ratio_Unmapped") +geom_point(aes(color=VIRUS_USE_Unmapped), alpha=0.7)  + theme_bw() + xlab("Coverage per read (Unmapped Reads + Less Stringent Mapping Paramters)") + ylab("Longest Contig (Unmapped Reads + Less Stringent Mapping Paramters)")+ggtitle(paste0("EBV Method Comparison")) +labs(colour="Virus") +guides(colour=guide_legend(ncol=1)) +geom_vline(xintercept=5, col="blue")+geom_vline(xintercept=10, col="green")+geom_hline(yintercept=100, col="blue")+geom_hline(yintercept=200, col="green") +facet_zoom(xlim=c(0,1.5), ylim=c(0,300))
+plot(plot_grid(p1, p2, ncol=1))
+p1 <- ggscatter(EBV_QC, y="Longest_contig_Unmapped", x="Coverage_Percent_1000bp_Unmapped") +geom_point(aes(color=Virus_name), alpha=0.7)  + theme_bw() + xlab("Coverage 1000bp Percent (Unmapped Reads + Less Stringent Mapping Paramters)") + ylab("Longest Contig (Unmapped Reads + Less Stringent Mapping Paramters)")+ggtitle(paste0("EBV Method Comparison")) +labs(colour="Virus") +guides(colour=guide_legend(ncol=1)) +geom_vline(xintercept=40, col="blue")+geom_vline(xintercept=50, col="green")+geom_hline(yintercept=100, col="blue")+geom_hline(yintercept=200, col="green") +facet_zoom(xlim=c(0,25), ylim=c(0,300))
+p2 <- ggscatter(EBV_QC, y="Longest_contig_Unmapped", x="Coverage_Percent_1000bp_Unmapped") +geom_point(aes(color=VIRUS_USE_Unmapped), alpha=0.7)  + theme_bw() + xlab("Coverage 1000bp Percent (Unmapped Reads + Less Stringent Mapping Paramters)") + ylab("Longest Contig (Unmapped Reads + Less Stringent Mapping Paramters)")+ggtitle(paste0("EBV Method Comparison")) +labs(colour="Virus") +guides(colour=guide_legend(ncol=1)) +geom_vline(xintercept=40, col="blue")+geom_vline(xintercept=50, col="green")+geom_hline(yintercept=100, col="blue")+geom_hline(yintercept=200, col="green") +facet_zoom(xlim=c(0,25), ylim=c(0,300))
+plot(plot_grid(p1, p2, ncol=1))
+dev.off()
+
+
+CMV_QC_ALL <- read.delim('/well/immune-rep/shared/MISEQ/VIRAL_SEQ/VT_FIRST/BULK_CMV/QC_measures_All_Reads.txt', header=TRUE)
+colnames(CMV_QC_ALL) <- paste0(colnames(CMV_QC_ALL), "_ALL")
+colnames(CMV_QC_ALL)[colnames(CMV_QC_ALL)=="Sample_ALL"] <- "Sample"
+colnames(CMV_QC_ALL)[colnames(CMV_QC_ALL) =="Virus_ALL"] <- "Virus"
+
+CMV_QC_Unmapped <- read.delim('/well/immune-rep/shared/MISEQ/VIRAL_SEQ/HUMAN_FIRST/BULK_CMV_UNMAPPED/QC_measures_Unmapped_Reads.txt', header=TRUE)
+colnames(CMV_QC_Unmapped) <- paste0(colnames(CMV_QC_Unmapped), "_Unmapped")
+colnames(CMV_QC_Unmapped)[colnames(CMV_QC_Unmapped)=="Sample_Unmapped"] <- "Sample"
+colnames(CMV_QC_Unmapped)[colnames(CMV_QC_Unmapped) =="Virus_Unmapped"] <- "Virus"
+CMV_QC <- merge(CMV_QC_ALL, CMV_QC_Unmapped, by=c("Sample", "Virus"), all = TRUE)	
+CMV_QC <- merge(CMV_QC, Virus_database, by.x="Virus", by.y="viral_genome")
+CMV_QC[is.na(CMV_QC)]<-0
+
+pdf(paste0("/well/immune-rep/shared/MISEQ/VIRAL_SEQ/CMV_Contig_comparison.pdf"), width=20, height=10)
+p1 <- ggscatter(CMV_QC, y="Longest_contig_Unmapped", x="Longest_contig_ALL", add = "reg.line") +geom_point(aes(color=Virus_name), alpha=0.7)  + theme_bw() + xlab("Longest Contig Using All Reads + Stringent Human Mapping Paramters") + ylab("Longest Contig Using Unmapped Reads + Less Stringent Mapping Paramters")+ggtitle(paste0("EBV Method Comparison")) +labs(colour="Virus") + geom_abline(intercept=0, slope=1, col="red") +guides(colour=guide_legend(ncol=1)) +geom_vline(xintercept=100, col="blue")+geom_vline(xintercept=200, col="green")+geom_hline(yintercept=100, col="blue")+geom_hline(yintercept=200, col="green") + stat_cor(method = "pearson", label.x = 300, label.y =300)+facet_zoom(xlim=c(0,200), ylim=c(0,200))
+plot(p1)
+p1 <- ggscatter(CMV_QC, y="Longest_contig_Unmapped", x="N_reads_Unmapped") +geom_point(aes(color=Virus_name), alpha=0.7)  + theme_bw() + xlab("Number of Reads (Unmapped Reads + Less Stringent Mapping Paramters)") + ylab("Longest Contig Using Unmapped Reads + Less Stringent Mapping Paramters")+ggtitle(paste0("EBV Method Comparison")) +labs(colour="Virus") +guides(colour=guide_legend(ncol=1)) +geom_vline(xintercept=5, col="blue")+geom_vline(xintercept=10, col="green")+geom_hline(yintercept=100, col="blue")+geom_hline(yintercept=200, col="green") +facet_zoom(xlim=c(0,75), ylim=c(0,300))
+plot(p1)
+p1 <- ggscatter(CMV_QC, y="Longest_contig_Unmapped", x="Coverage_per_read_Ratio_Unmapped") +geom_point(aes(color=Virus_name), alpha=0.7)  + theme_bw() + xlab("Coverage per read (Unmapped Reads + Less Stringent Mapping Paramters)") + ylab("Longest Contig (Unmapped Reads + Less Stringent Mapping Paramters)")+ggtitle(paste0("EBV Method Comparison")) +labs(colour="Virus") +guides(colour=guide_legend(ncol=1)) +geom_vline(xintercept=5, col="blue")+geom_vline(xintercept=10, col="green")+geom_hline(yintercept=100, col="blue")+geom_hline(yintercept=200, col="green") +facet_zoom(xlim=c(0,1.5), ylim=c(0,300))
+plot(p1)
+p1 <- ggscatter(CMV_QC, y="Longest_contig_Unmapped", x="Coverage_Percent_1000bp_Unmapped") +geom_point(aes(color=Virus_name), alpha=0.7)  + theme_bw() + xlab("Coverage 1000bp Percent (Unmapped Reads + Less Stringent Mapping Paramters)") + ylab("Longest Contig (Unmapped Reads + Less Stringent Mapping Paramters)")+ggtitle(paste0("EBV Method Comparison")) +labs(colour="Virus") +guides(colour=guide_legend(ncol=1)) +geom_vline(xintercept=40, col="blue")+geom_vline(xintercept=50, col="green")+geom_hline(yintercept=100, col="blue")+geom_hline(yintercept=200, col="green") +facet_zoom(xlim=c(0,25), ylim=c(0,300))
+plot(p1)
+dev.off()
 
 
 
-
-
-
+#+facet_zoom(xlim=c(0,200), ylim=c(0,200))
 #-------------------------------------------------------------------------------------------------------------
 # Reading in samples and making matrix for QC_Results 
 # Reading in samples and making matrix for unique reads post feature counts:

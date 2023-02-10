@@ -1,0 +1,117 @@
+SingleCell_VirSeq_UniqueMapping by Lauren Overend. 
+Run Name: Single_Cell
+Start time: 2022-07-22 17:44:25
+----------------------------------------------
+Checking Input files. 
+----------------------------------------------
+RUN PARAMETERS. 
+Output directory: /gpfs2/well/immune-rep/shared/CODE/Viral-Seq/ExampleOutput
+FASTQ File: /well/immune-rep/shared/CODE/Viral-Seq/SingleCell/Downsamples/sub10k.fa
+--nThreadmap: 8
+--outputdir: /gpfs2/well/immune-rep/shared/CODE/Viral-Seq/ExampleOutput
+--indexgenome: /well/immune-rep/shared/CODE/VIRAL_SEQ_Reference/VIRAL_SEQ_273a_NCBI
+--nThreadsort: 1
+--minreads: 1
+--thresholdmappedreads: 50
+--bins: 50
+--fastq: /well/immune-rep/shared/CODE/Viral-Seq/SingleCell/Downsamples/sub10k.fa
+--runname: Single_Cell
+--viralannotation: /well/immune-rep/shared/CODE/VIRAL_SEQ_Reference/NCBI_Viral_Seq_Reference.txt
+--auxfunctions: /well/immune-rep/shared/CODE/Viral-Seq/AuxillaryFunctions/auxillary_viral_track_functions.R
+--gtffile: FALSE
+----------------------------------------------
+Output directory created. 
+----------------------------------------------
+NO GTF FILE PROVIDED: CREATING GTF FROM PROVIDED REFERENCE. 
+GTF FILE GENERATED. 
+----------------------------------------------
+Mapping: sub10k.fastq file 
+Start time: 2022-07-22 17:44:25
+Is File Gzipped: FALSE
+End time: 2022-07-22 17:47:50
+Mapping: sub10k.fastq DONE! 
+----------------------------------------------
+Commencing QC analysis: 
+QC START TIME: 2022-07-22 17:47:50
+	 1. ViralSite annotation File loaded Sucessfully. 
+	 2. Indexing BAM: 
+	 Indexing of the bam file for sub10k is done. 
+	 3. Computing The number of Mapped Reads For Each Chromosome/Virus. 
+	 Indexing and Stat file for sub10kis done. 
+	 4. Identified 1 viruses with at least 1 Reads in input Fastq. 
+	 5. Extracting BAMs files to new directories. 
+	 5.a  Setting up Parrallel Environment in R using:  1  Threads. 
+	 Done. 
+	 5.b  Viral BAM Files Extracted. 
+	 5.c Human BAM Files Extracted. 
+	 5.d Terminating Parrallel Environment. 
+	 7. Calculating QC Metrics. 
+	 ----------------------------------------------
+	 1 VIRUSES IDENFIFIED WITH MIN READS MAPPED >=1. 
+	 QC VIRAL METRICS WILL BE CALCULTED. 
+	 ----------------------------------------------
+	 Calculating VIRAL QC Metrics.... DONE!. 
+Only one virus detected - output is not a dataframe: converting 
+	 8. Filtering on QC Metrics. 
+	 9. Exporting QC Metrics / identified Viruses to .txt files. 
+	 Exporting QC Metrics... DONE! 
+	 10. Calculating Broad Metrics on Mapping. 
+	 10. Calculating Broad Metrics on Mapping...DONE 
+	 11. Plotting QC plots to pdf. 
+	 11. Plotting QC statistics.. Done. 
+
+ ----------------------------------------------
+QC PDF and Summary Statistics Done and Saved.  
+----------------------------------------------
+----------------------------------------------
+ViRNAseq_Scanning.2.0 COMPLETE 
+End time: 2022-07-22 17:49:24
+End time: -4.98499307632446
+----------------------------------------------
+----------------------------------------------
+ViralTrack_FeatureCounting  
+Start Time:  1658508564 
+----------------------------------------------
+	 2. Sorting BAM for feature counts: 
+	 Sorting BAM file for sub10k is done. 
+Aggregation Complete. 
+----------------------------------------------
+Performing Feature Counts on Reads To Demultiplex.  
+-T: Threads for featureCounts: 8 
+Start Time Feature Counts:  1658508569 
+End Time Feature Counts:  1658508569 
+Feature Counts Complete.  
+----------------------------------------------
+Sorting Bam File.  
+Done.  
+Indexing Bam File.  
+Done.  
+Starting UMI-tools Count.  
+Done.  
+----------------------------------------------
+Reading Expression tsv file.  
+Output directory created. 
+Calculating Meta Data Percentages.  
+	 Human Read Percentage/counts Calculated.  
+	 Human Mitochondrial Read Percentage Calculated.  
+VIRAL reads PRESENT. Calculating Total and Individual Viral Percentages. 
+Only One Virus Present. 
+Calculating Percentage per Virus. 
+Finished Calculating Viral Percentages. 
+Converting Expression Table into Sparse Format. 
+Done. 
+Writing Viral_counts.mtx. 
+Writing barcodes.tsv. 
+Writing genomes.tsv. 
+Done. 
+Creating Report Directory. 
+Moving Useful Files into Report Directory. 
+Done. 
+----------------------------------------------
+DEMULTIPLEXING COMPLETE. 
+Demultipexing End Time  1658508582 
+Run Time  17.47921 
+----------------------------------------------
+----------------------------------------------
+PIPELINE COMPLETE. 
+----------------------------------------------

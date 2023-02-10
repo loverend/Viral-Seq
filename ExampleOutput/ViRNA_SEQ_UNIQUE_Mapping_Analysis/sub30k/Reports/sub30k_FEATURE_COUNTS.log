@@ -1,0 +1,53 @@
+
+        ==========     _____ _    _ ____  _____  ______          _____  
+        =====         / ____| |  | |  _ \|  __ \|  ____|   /\   |  __ \ 
+          =====      | (___ | |  | | |_) | |__) | |__     /  \  | |  | |
+            ====      \___ \| |  | |  _ <|  _  /|  __|   / /\ \ | |  | |
+              ====    ____) | |__| | |_) | | \ \| |____ / ____ \| |__| |
+        ==========   |_____/ \____/|____/|_|  \_\______/_/    \_\_____/
+	  v2.0.1
+
+//========================== featureCounts setting ===========================\\
+||                                                                            ||
+||             Input files : 1 BAM file                                       ||
+||                           o sub30kfor_feature_counts.bam                   ||
+||                                                                            ||
+||             Output file : counts.txt                                       ||
+||                 Summary : counts.txt.summary                               ||
+||              Annotation : referencegtf.gtf (GTF)                           ||
+||      Dir for temp files : /gpfs2/well/immune-rep/shared/CODE/Viral-Seq ... ||
+||      Assignment details : <input_file>.featureCounts.bam                   ||
+||                      (Note that files are saved to the output directory)   ||
+||                                                                            ||
+||                                                                            ||
+||                 Threads : 8                                                ||
+||                   Level : meta-feature level                               ||
+||              Paired-end : no                                               ||
+||      Multimapping reads : not counted                                      ||
+|| Multi-overlapping reads : not counted                                      ||
+||   Min overlapping bases : 1                                                ||
+||                                                                            ||
+\\============================================================================//
+
+//================================= Running ==================================\\
+||                                                                            ||
+|| Load annotation file referencegtf.gtf ...                                  ||
+||    Features : 499                                                          ||
+||    Meta-features : 499                                                     ||
+||    Chromosomes/contigs : 499                                               ||
+||                                                                            ||
+|| Process BAM file sub30kfor_feature_counts.bam...                           ||
+||    Single-end reads are included.                                          ||
+||    Total alignments : 31941                                                ||
+||    Successfully assigned alignments : 26076 (81.6%)                        ||
+||    Running time : 0.02 minutes                                             ||
+||                                                                            ||
+|| Write the final count table.                                               ||
+|| Write the read assignment summary.                                         ||
+||                                                                            ||
+|| Summary of counting results can be found in file "/gpfs2/well/immune-rep/  ||
+|| shared/CODE/Viral-Seq/ExampleOutput/ViRNA_SEQ_UNIQUE_Mapping_Analysis/sub  ||
+|| 30k/counts.txt.summary"                                                    ||
+||                                                                            ||
+\\============================================================================//
+

@@ -17,7 +17,10 @@ library(gplots)
 library(RColorBrewer)
 library(cowplot)
 
-#outputdir <- outputdir <- '/well/immune-rep/shared/MISEQ/VIRAL_SEQ/VT_FIRST/BULK_CMV/'
+#outputdir <-'/well/immune-rep/shared/MISEQ/VIRAL_SEQ/VT_FIRST/BULK_CMV/'
+#outputdir <-'/well/immune-rep/shared/MISEQ/VIRAL_SEQ/VT_FIRST/BULK_EBV_LCL/'
+#outputdir <-'/well/immune-rep/shared/MISEQ/VIRAL_SEQ/SEPSIS_GAINS_1/'
+
 
 get_counts <- function(outputdir, type_run){
 	paths <- list.files(paste0(outputdir, "/ViRNA_SEQ_UNIQUE_Mapping_Analysis"), recursive=TRUE, full.name=TRUE)
@@ -34,8 +37,13 @@ get_counts <- function(outputdir, type_run){
 	d <- gsub("Human_betaherpesvirus_5", "CMV", d)
 	d <- gsub("Donor", "", d)
 	d <- gsub("plus", "", d)
-	s <- str_split_fixed(d, "_", 3)
-	d <- s[,3]
+	d <- gsub("_R1_001", "", d)
+	d <- gsub("_RNA-Seq", "", d)
+	d <- gsub(".Unmapped.out", "", d)
+	if(outputdir %like% "CMV"){
+		s <- str_split_fixed(d, "_", 3)
+		d <- s[,3]
+	}
 
 	# Name each dataframe with the run and filename
 	names(df_list) <- d
@@ -86,6 +94,7 @@ get_counts <- function(outputdir, type_run){
 	plot_formv <- plot_form[plot_form$Var %in% viral_genomes,]
 	plot_form2 <- reshape2::melt(mx_normalise)
 	colnames(plot_form2) <- c("Var1", "Sample1", "RAW_COUNT")
+	
 	plot_form2v <- plot_form2[plot_form2$Var %in% viral_genomes,]
 	## Include only viruses which were detected
 	s <- aggregate(plot_form2v$RAW_COUNT, by=list(plot_form2v$Var1), FUN=sum)
@@ -94,7 +103,25 @@ get_counts <- function(outputdir, type_run){
 	new_plot <- cbind(plot_form, plot_form2)
 	new_plotv <- cbind(plot_formv, plot_form2v)
 	new_plotv <- new_plotv[new_plotv$Var %in% found_viruses,]
-	p1 <- ggplot(new_plot, aes(color=Sample, x=RAW_COUNT, y=CPM)) + geom_point()  + theme_classic() + xlab("Raw Counts") + ylab("Counts Per Million")+ggtitle(paste0("Human + Virus: ", type_run)) +labs(colour="Sample")  
+	
+	################# CODE specific to LCL sample names 
+	if(outputdir %like% "EBV"){
+		new_plotv$Sample <- gsub("2_M", "M", new_plotv$Sample)
+		s <- str_split_fixed(new_plotv$Sample, "_", 3)
+		s <- s[,1]
+		new_plotv$Sample <- s	
+		new_plot$Sample <- gsub("2_M", "M", new_plot$Sample)
+		s <- str_split_fixed(new_plot$Sample, "_", 3)
+		s <- s[,1]
+		new_plot$Sample <- s
+	}
+	################# 
+	if(length(unique(new_plot$Sample)) <40){
+		p1 <- ggplot(new_plot, aes(color=Sample, x=RAW_COUNT, y=CPM)) + geom_point()  + theme_classic() + xlab("Raw Counts") + ylab("Counts Per Million")+ggtitle(paste0("Human + Virus: ", type_run)) +labs(colour="Sample")  
+	} else {
+		p1 <- ggplot(new_plot, aes(x=RAW_COUNT, y=CPM)) + geom_point()  + theme_classic() + xlab("Raw Counts") + ylab("Counts Per Million")+ggtitle(paste0("Human + Virus: ", type_run))   
+	}
+	
 	p2 <- ggplot(new_plotv, aes(color=Var, x=RAW_COUNT, y=CPM)) + geom_point()  + theme_classic() + xlab("Raw Counts") + ylab("Counts Per Million")+ggtitle(paste0("Virus: ", type_run)) +labs(colour="Virus")
 	p3 <- ggplot(lib_size, aes(x=Counts)) + geom_histogram(fill="White", colour="black", bins = 50) + theme_bw() +xlab("Library Size") +ylab("Count")+ggtitle(paste0("Human + Virus: ", type_run))
 	plot(plot_grid(p1, p2, p3, ncol=1))

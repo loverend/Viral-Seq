@@ -1,0 +1,1 @@
+N_reads	N_unique_reads	Percent_uniquely_mapped	Mean_read_quality	Sd_read_quality	A	C	G	T	Sequence_entropy	Spatial_distribution	Longest_contig	DUST_score	Percent_high_quality_reads	Coverage_per_read_Ratio	Mean_Read_Length	Coverage_Percent_1000bp	genome	PassedFiltering
