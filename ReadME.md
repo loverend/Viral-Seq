@@ -33,7 +33,7 @@ library(optparse)
 - Summary: The first step consists in creating a **STAR** index that include both host and virus reference genomes.
 - Viral Refererence:  
 - Host genome has also to be downloaded from the [ensembl website](https://www.ensembl.org/info/data/ftp/index.html). 
-- We include a reference downloaded from NCBI, which has been filtered to include those relevent to a UK population. We also removed EBV type 2 and kept the gene which discriminates the two types to prevent multi-mapping issues.
-- Edit Build_STAR_reference.sh with locations of files
+- We include a reference downloaded from NCBI (as of Feb 2022), which has been filtered to include those relevent to a UK population. We also removed EBV type 2 and kept the gene which discriminates the two types to prevent multi-mapping issues.
+- Edit Build_STAR_reference.sh with locations of files including the host/viral files 
 - Run: 
 ```./Build_STAR_reference.sh```
